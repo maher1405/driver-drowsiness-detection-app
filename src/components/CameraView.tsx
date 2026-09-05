@@ -71,13 +71,13 @@ export const CameraView: React.FC<CameraViewProps> = ({
   return (
     <div
       id="camera-view-container"
-      className="relative flex flex-col border border-zinc-800 bg-zinc-900/40 p-4 font-mono shadow-xl overflow-hidden"
+      className="relative flex flex-col border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-4 font-mono shadow-xs transition-colors overflow-hidden"
     >
       {/* Top Video Header / Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-zinc-800">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-3">
           <div className="w-2.5 h-2.5 rounded-full bg-red-600" />
-          <h2 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <h2 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
             OPTICAL SENSOR FEED
             {isCameraActive && (
               <span className="text-[10px] text-zinc-500 font-normal">
@@ -92,7 +92,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
           {devices.length === 0 && !isCameraActive && (
             <div
               id="camera-hw-warning-badge"
-              className="flex items-center gap-1 px-2 py-0.5 border border-amber-800/80 bg-amber-950/40 text-amber-400 text-[9px] uppercase tracking-wider"
+              className="flex items-center gap-1 px-2 py-0.5 border border-amber-300 dark:border-amber-800/80 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 text-[9px] uppercase tracking-wider"
               title="No video capture hardware detected"
             >
               <AlertTriangle className="h-3 w-3" />
@@ -108,7 +108,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
                 onSelectDevice(e.target.value);
                 if (isCameraActive) onStartCamera(e.target.value);
               }}
-              className="h-7 border border-zinc-800 bg-zinc-950 px-2 text-[10px] uppercase text-zinc-300 focus:outline-none max-w-[130px] truncate"
+              className="h-7 border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-950 px-2 text-[10px] uppercase text-zinc-700 dark:text-zinc-300 focus:outline-none max-w-[130px] truncate"
             >
               {devices.map((device, idx) => (
                 <option key={device.deviceId} value={device.deviceId}>
@@ -125,7 +125,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
               onClick={() => onRefreshDevices()}
               disabled={isCheckingDevices}
               title="Rescan camera devices"
-              className="flex h-7 px-2 items-center gap-1 border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200 text-[10px] uppercase transition-colors cursor-pointer disabled:opacity-50"
+              className="flex h-7 px-2 items-center gap-1 border border-zinc-200 dark:border-zinc-800 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-950 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 text-[10px] uppercase transition-colors cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`h-3 w-3 ${isCheckingDevices ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Scan</span>
@@ -139,8 +139,8 @@ export const CameraView: React.FC<CameraViewProps> = ({
             title={config.mirrorWebcam ? 'Mirror: On' : 'Mirror: Off'}
             className={`flex h-7 w-7 items-center justify-center border text-[10px] transition-colors cursor-pointer ${
               config.mirrorWebcam
-                ? 'border-red-900 bg-red-950/40 text-red-400'
-                : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200'
+                ? 'border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400'
+                : 'border-zinc-200 dark:border-zinc-800 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
             <FlipHorizontal className="h-3.5 w-3.5" />
@@ -153,8 +153,8 @@ export const CameraView: React.FC<CameraViewProps> = ({
             title={config.showMeshOverlay ? 'Facial Mesh Overlay: Enabled' : 'Facial Mesh Overlay: Disabled'}
             className={`flex h-7 w-7 items-center justify-center border text-[10px] transition-colors cursor-pointer ${
               config.showMeshOverlay
-                ? 'border-blue-900 bg-blue-950/40 text-blue-400'
-                : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200'
+                ? 'border-blue-300 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
+                : 'border-zinc-200 dark:border-zinc-800 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
             <Eye className="h-3.5 w-3.5" />
@@ -166,7 +166,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
             disabled={!isCameraActive || isCalibrating}
             onClick={onStartCalibration}
             title="Auto-Calibrate Neutral Eye & Face Baseline"
-            className="flex items-center gap-1 h-7 px-2 border border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 text-[10px] uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-1 h-7 px-2 border border-zinc-200 dark:border-zinc-800 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-950 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white text-[10px] uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer"
           >
             <Crosshair className="h-3 w-3 text-red-500" />
             <span className="hidden sm:inline">Calibrate</span>

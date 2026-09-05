@@ -66,14 +66,14 @@ export const AlertLogTable: React.FC<AlertLogTableProps> = ({ logs, onClearLogs 
   return (
     <div
       id="alert-logs-section"
-      className="bg-zinc-900/40 border border-zinc-800 p-4 flex flex-col font-mono"
+      className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-4 flex flex-col font-mono shadow-xs transition-colors"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-zinc-800">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
         <div>
           <h3 className="text-[10px] text-zinc-500 uppercase tracking-[0.2em]">
             Alert Incident Log
           </h3>
-          <span className="text-[11px] text-zinc-400">
+          <span className="text-[11px] text-zinc-600 dark:text-zinc-400">
             {logs.length} {logs.length === 1 ? 'EVENT' : 'EVENTS RECORDED'}
           </span>
         </div>
@@ -86,9 +86,9 @@ export const AlertLogTable: React.FC<AlertLogTableProps> = ({ logs, onClearLogs 
               type="button"
               onClick={handleExportCSV}
               title="Export CSV Log"
-              className="flex items-center gap-1 h-6 px-2 border border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-white text-[10px] uppercase tracking-wider transition-colors cursor-pointer"
+              className="flex items-center gap-1 h-6 px-2 border border-zinc-200 dark:border-zinc-800 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-950 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white text-[10px] uppercase tracking-wider transition-colors cursor-pointer"
             >
-              <FileSpreadsheet className="h-3 w-3 text-emerald-500" />
+              <FileSpreadsheet className="h-3 w-3 text-emerald-600 dark:text-emerald-500" />
               CSV
             </button>
 
@@ -97,9 +97,9 @@ export const AlertLogTable: React.FC<AlertLogTableProps> = ({ logs, onClearLogs 
               type="button"
               onClick={handleExportJSON}
               title="Export JSON Log"
-              className="flex items-center gap-1 h-6 px-2 border border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-white text-[10px] uppercase tracking-wider transition-colors cursor-pointer"
+              className="flex items-center gap-1 h-6 px-2 border border-zinc-200 dark:border-zinc-800 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-950 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white text-[10px] uppercase tracking-wider transition-colors cursor-pointer"
             >
-              <Download className="h-3 w-3 text-blue-400" />
+              <Download className="h-3 w-3 text-blue-600 dark:text-blue-400" />
               JSON
             </button>
 
@@ -108,7 +108,7 @@ export const AlertLogTable: React.FC<AlertLogTableProps> = ({ logs, onClearLogs 
               type="button"
               onClick={onClearLogs}
               title="Clear Alert Logs"
-              className="flex items-center gap-1 h-6 px-2 border border-red-900/60 bg-red-950/20 hover:bg-red-900/40 text-red-400 text-[10px] uppercase tracking-wider transition-colors cursor-pointer"
+              className="flex items-center gap-1 h-6 px-2 border border-red-200 dark:border-red-900/60 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 text-[10px] uppercase tracking-wider transition-colors cursor-pointer"
             >
               <Trash2 className="h-3 w-3" />
               Clear
@@ -120,7 +120,7 @@ export const AlertLogTable: React.FC<AlertLogTableProps> = ({ logs, onClearLogs 
       {/* Table Content or Empty State */}
       {logs.length === 0 ? (
         <div className="py-8 text-center text-zinc-500 text-xs">
-          <div className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1">
+          <div className="text-[10px] uppercase tracking-widest text-zinc-400 dark:text-zinc-600 mb-1">
             STATUS: STANDBY
           </div>
           No fatigue incidents recorded in current session.
@@ -129,21 +129,21 @@ export const AlertLogTable: React.FC<AlertLogTableProps> = ({ logs, onClearLogs 
         <div className="mt-2 overflow-x-auto max-h-64">
           <table className="w-full text-left text-[11px] border-collapse">
             <thead>
-              <tr className="text-zinc-500 border-b border-zinc-800 text-[10px]">
+              <tr className="text-zinc-500 border-b border-zinc-200 dark:border-zinc-800 text-[10px]">
                 <th className="pb-1.5 font-normal uppercase tracking-wider">Timestamp</th>
                 <th className="pb-1.5 font-normal uppercase tracking-wider">Event Type</th>
                 <th className="pb-1.5 font-normal uppercase tracking-wider">EAR / MAR / Pitch</th>
                 <th className="pb-1.5 font-normal uppercase tracking-wider text-right">Action Taken</th>
               </tr>
             </thead>
-            <tbody className="text-zinc-400">
+            <tbody className="text-zinc-600 dark:text-zinc-400">
               {logs.map((log) => (
-                <tr key={log.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/60 transition-colors">
-                  <td className="py-2 font-mono text-zinc-300">{log.timestamp}</td>
-                  <td className={`py-2 font-semibold ${log.alertState === 'Drowsy' ? 'text-red-500' : 'text-yellow-500'}`}>
+                <tr key={log.id} className="border-b border-zinc-100 dark:border-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-900/60 transition-colors">
+                  <td className="py-2 font-mono text-zinc-900 dark:text-zinc-300 font-medium">{log.timestamp}</td>
+                  <td className={`py-2 font-semibold ${log.alertState === 'Drowsy' ? 'text-red-600 dark:text-red-500' : 'text-amber-600 dark:text-yellow-500'}`}>
                     {log.reason}
                   </td>
-                  <td className="py-2 font-mono text-zinc-400">
+                  <td className="py-2 font-mono text-zinc-600 dark:text-zinc-400">
                     E:{log.ear.toFixed(2)} | M:{log.mar.toFixed(2)} | P:{log.headPitch}°
                   </td>
                   <td className="py-2 text-right uppercase text-[10px] text-zinc-500">

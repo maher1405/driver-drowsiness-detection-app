@@ -1,9 +1,51 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, [data-theme="dark"], .dark *, [data-theme="dark"] *));
+
 @layer base {
+  :root,
+  .dark,
+  [data-theme="dark"] {
+    --bg-app: #0a0a0a;
+    --text-app: #d4d4d8;
+    color-scheme: dark;
+  }
+
+  .light,
+  [data-theme="light"] {
+    --bg-app: #f4f4f7;
+    --text-app: #18181b;
+    color-scheme: light;
+  }
+
   body {
-    background-color: #0a0a0a;
-    color: #d4d4d8;
+    background-color: var(--bg-app);
+    color: var(--text-app);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* Custom subtle scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .dark ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-track {
+    background: #0d0d0d;
+  }
+
+  .light ::-webkit-scrollbar-track {
+    background: #f1f1f4;
+  }
+
+  .dark ::-webkit-scrollbar-thumb,
+  ::-webkit-scrollbar-thumb {
+    background: #27272a;
+  }
+
+  .light ::-webkit-scrollbar-thumb {
+    background: #d4d4d8;
   }
 }

@@ -73,3 +73,5 @@ export interface CameraErrorInfo {
   suggestion: string;
   rawError?: string;
 }
+
+export type Theme = 'dark' | 'light';

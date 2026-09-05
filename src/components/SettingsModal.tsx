@@ -49,22 +49,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   return (
     <div
       id="settings-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 overflow-y-auto font-mono"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/85 p-4 overflow-y-auto font-mono"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
         id="settings-modal-panel"
-        className="relative w-full max-w-lg border border-zinc-800 bg-[#0a0a0a] p-6 shadow-2xl text-zinc-300 my-8 space-y-6"
+        className="relative w-full max-w-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0a0a0a] p-6 shadow-2xl text-zinc-700 dark:text-zinc-300 my-8 space-y-6"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-3">
           <div>
             <h2 className="text-xs text-zinc-500 uppercase tracking-[0.2em]">
               SYSTEM CONFIGURATION
             </h2>
-            <p className="text-sm font-bold text-white uppercase tracking-wider mt-0.5">
+            <p className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider mt-0.5">
               DETECTION & ALERT PARAMETERS
             </p>
           </div>
@@ -73,16 +73,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             id="btn-close-settings"
             type="button"
             onClick={onClose}
-            className="p-1 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            className="p-1 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Calibration Banner */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border border-zinc-800 bg-zinc-900/30 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/30 p-3">
           <div>
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+            <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
               DRIVER BIOMETRIC BASELINE
             </h4>
             <p className="text-[10px] text-zinc-500 uppercase mt-0.5">
@@ -113,8 +113,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
-                <label htmlFor="input-ear-threshold" className="text-zinc-400">THRESHOLD</label>
-                <span className="font-bold text-red-500">{config.earThreshold.toFixed(2)}</span>
+                <label htmlFor="input-ear-threshold" className="text-zinc-600 dark:text-zinc-400">THRESHOLD</label>
+                <span className="font-bold text-red-600 dark:text-red-500">{config.earThreshold.toFixed(2)}</span>
               </div>
               <input
                 id="input-ear-threshold"
@@ -128,13 +128,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 }
                 className="w-full accent-red-600"
               />
-              <span className="text-[9px] text-zinc-600 uppercase">Default: 0.25</span>
+              <span className="text-[9px] text-zinc-400 dark:text-zinc-600 uppercase">Default: 0.25</span>
             </div>
 
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
-                <label htmlFor="input-ear-frames" className="text-zinc-400">TRIGGER FRAMES</label>
-                <span className="font-bold text-white">{config.earConsecutiveFrames}f</span>
+                <label htmlFor="input-ear-frames" className="text-zinc-600 dark:text-zinc-400">TRIGGER FRAMES</label>
+                <span className="font-bold text-zinc-900 dark:text-white">{config.earConsecutiveFrames}f</span>
               </div>
               <input
                 id="input-ear-frames"
@@ -148,13 +148,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 }
                 className="w-full accent-red-600"
               />
-              <span className="text-[9px] text-zinc-600 uppercase">Default: 20 frames</span>
+              <span className="text-[9px] text-zinc-400 dark:text-zinc-600 uppercase">Default: 20 frames</span>
             </div>
           </div>
         </div>
 
         {/* Section 2: Mouth Aspect Ratio (MAR) */}
-        <div className="space-y-3 border-t border-zinc-800/80 pt-3">
+        <div className="space-y-3 border-t border-zinc-200 dark:border-zinc-800/80 pt-3">
           <div className="text-[10px] text-zinc-500 uppercase tracking-[0.2em]">
             MOUTH ASPECT RATIO (MAR)
           </div>
@@ -162,8 +162,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
-                <label htmlFor="input-mar-threshold" className="text-zinc-400">THRESHOLD</label>
-                <span className="font-bold text-blue-400">{config.marThreshold.toFixed(2)}</span>
+                <label htmlFor="input-mar-threshold" className="text-zinc-600 dark:text-zinc-400">THRESHOLD</label>
+                <span className="font-bold text-blue-600 dark:text-blue-400">{config.marThreshold.toFixed(2)}</span>
               </div>
               <input
                 id="input-mar-threshold"
@@ -177,13 +177,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 }
                 className="w-full accent-blue-500"
               />
-              <span className="text-[9px] text-zinc-600 uppercase">Default: 0.60</span>
+              <span className="text-[9px] text-zinc-400 dark:text-zinc-600 uppercase">Default: 0.60</span>
             </div>
 
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
-                <label htmlFor="input-mar-frames" className="text-zinc-400">TRIGGER FRAMES</label>
-                <span className="font-bold text-white">{config.marConsecutiveFrames}f</span>
+                <label htmlFor="input-mar-frames" className="text-zinc-600 dark:text-zinc-400">TRIGGER FRAMES</label>
+                <span className="font-bold text-zinc-900 dark:text-white">{config.marConsecutiveFrames}f</span>
               </div>
               <input
                 id="input-mar-frames"
@@ -197,13 +197,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 }
                 className="w-full accent-blue-500"
               />
-              <span className="text-[9px] text-zinc-600 uppercase">Default: 15 frames</span>
+              <span className="text-[9px] text-zinc-400 dark:text-zinc-600 uppercase">Default: 15 frames</span>
             </div>
           </div>
         </div>
 
         {/* Section 3: Head Tilt Pose */}
-        <div className="space-y-3 border-t border-zinc-800/80 pt-3">
+        <div className="space-y-3 border-t border-zinc-200 dark:border-zinc-800/80 pt-3">
           <div className="text-[10px] text-zinc-500 uppercase tracking-[0.2em]">
             HEAD NODDING PITCH
           </div>
@@ -211,8 +211,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
-                <label htmlFor="input-head-pitch" className="text-zinc-400">PITCH LIMIT</label>
-                <span className="font-bold text-emerald-400">{config.headPitchThreshold}°</span>
+                <label htmlFor="input-head-pitch" className="text-zinc-600 dark:text-zinc-400">PITCH LIMIT</label>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">{config.headPitchThreshold}°</span>
               </div>
               <input
                 id="input-head-pitch"
@@ -226,13 +226,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 }
                 className="w-full accent-emerald-500"
               />
-              <span className="text-[9px] text-zinc-600 uppercase">Default: -14°</span>
+              <span className="text-[9px] text-zinc-400 dark:text-zinc-600 uppercase">Default: -14°</span>
             </div>
 
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
-                <label htmlFor="input-nod-frames" className="text-zinc-400">TRIGGER FRAMES</label>
-                <span className="font-bold text-white">{config.headNodConsecutiveFrames}f</span>
+                <label htmlFor="input-nod-frames" className="text-zinc-600 dark:text-zinc-400">TRIGGER FRAMES</label>
+                <span className="font-bold text-zinc-900 dark:text-white">{config.headNodConsecutiveFrames}f</span>
               </div>
               <input
                 id="input-nod-frames"
@@ -246,13 +246,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 }
                 className="w-full accent-emerald-500"
               />
-              <span className="text-[9px] text-zinc-600 uppercase">Default: 15 frames</span>
+              <span className="text-[9px] text-zinc-400 dark:text-zinc-600 uppercase">Default: 15 frames</span>
             </div>
           </div>
         </div>
 
         {/* Section 4: Audio Alarm Controls */}
-        <div className="space-y-3 border-t border-zinc-800/80 pt-3">
+        <div className="space-y-3 border-t border-zinc-200 dark:border-zinc-800/80 pt-3">
           <div className="flex items-center justify-between">
             <div className="text-[10px] text-zinc-500 uppercase tracking-[0.2em]">
               AUDIO ALERT ALARM
@@ -260,7 +260,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <button
               type="button"
               onClick={handleTestBeep}
-              className="text-[10px] text-red-500 hover:text-red-400 uppercase tracking-wider cursor-pointer"
+              className="text-[10px] text-red-600 dark:text-red-500 hover:text-red-500 uppercase tracking-wider cursor-pointer"
             >
               [TEST TONE]
             </button>
@@ -274,13 +274,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onChange={(e) => onChangeConfig({ ...config, soundEnabled: e.target.checked })}
                 className="h-3.5 w-3.5 accent-red-600"
               />
-              <span className="uppercase text-zinc-300">Audible Siren On Alert</span>
+              <span className="uppercase text-zinc-800 dark:text-zinc-300">Audible Siren On Alert</span>
             </label>
 
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="text-zinc-500 uppercase">VOLUME</span>
-                <span className="font-bold text-white">
+                <span className="font-bold text-zinc-900 dark:text-white">
                   {Math.round(config.soundVolume * 100)}%
                 </span>
               </div>
@@ -301,12 +301,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Section 5: Overlays */}
-        <div className="space-y-2 border-t border-zinc-800/80 pt-3">
+        <div className="space-y-2 border-t border-zinc-200 dark:border-zinc-800/80 pt-3">
           <div className="text-[10px] text-zinc-500 uppercase tracking-[0.2em]">
             DISPLAY OVERLAYS
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-[11px] uppercase">
+          <div className="grid grid-cols-3 gap-2 text-[11px] uppercase text-zinc-700 dark:text-zinc-300">
             <label className="flex items-center gap-1.5 cursor-pointer">
               <input
                 type="checkbox"
@@ -346,12 +346,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
+        <div className="flex items-center justify-between border-t border-zinc-200 dark:border-zinc-800 pt-4">
           <button
             id="btn-reset-defaults"
             type="button"
             onClick={handleResetDefaults}
-            className="flex items-center gap-1 text-[10px] text-zinc-500 hover:text-white uppercase tracking-wider transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-[10px] text-zinc-500 hover:text-zinc-900 dark:hover:text-white uppercase tracking-wider transition-colors cursor-pointer"
           >
             <RotateCcw className="h-3 w-3" />
             RESET DEFAULTS
@@ -361,7 +361,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             id="btn-save-close-settings"
             type="button"
             onClick={onClose}
-            className="bg-white text-zinc-950 px-4 py-1.5 text-xs font-bold uppercase tracking-wider hover:bg-zinc-200 transition-colors cursor-pointer"
+            className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 px-4 py-1.5 text-xs font-bold uppercase tracking-wider hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors cursor-pointer"
           >
             SAVE & CLOSE
           </button>
