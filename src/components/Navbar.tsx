@@ -5,6 +5,8 @@ import {
   VolumeX,
   Sliders,
   BellRing,
+  BellOff,
+  Play,
 } from 'lucide-react';
 import { alarmAudio } from '../utils/audio';
 
@@ -14,6 +16,10 @@ interface NavbarProps {
   onToggleSound: () => void;
   onOpenSettings: () => void;
   drowsyEventCount: number;
+  isSnoozed?: boolean;
+  snoozeTimeRemaining?: number;
+  onSnooze?: () => void;
+  onCancelSnooze?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -22,6 +28,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleSound,
   onOpenSettings,
   drowsyEventCount,
+  isSnoozed = false,
+  snoozeTimeRemaining = 0,
+  onSnooze,
+  onCancelSnooze,
 }) => {
   const [systemTime, setSystemTime] = useState<string>('');
 
@@ -53,7 +63,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-3">
           <div
             className={`w-3 h-3 rounded-full shrink-0 ${
-              alertState === 'Drowsy'
+              isSnoozed
+                ? 'bg-amber-400'
+                : alertState === 'Drowsy'
                 ? 'bg-red-600 animate-ping'
                 : alertState === 'Warning'
                 ? 'bg-amber-500 animate-pulse'
@@ -85,14 +97,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="text-zinc-500 text-[10px]">Status</span>
               <span
                 className={`font-bold ${
-                  alertState === 'Drowsy'
+                  isSnoozed
+                    ? 'text-amber-400'
+                    : alertState === 'Drowsy'
                     ? 'text-red-500 animate-pulse'
                     : alertState === 'Warning'
                     ? 'text-amber-500'
                     : 'text-emerald-500'
                 }`}
               >
-                {alertState === 'Drowsy'
+                {isSnoozed
+                  ? `SNOOZED (${snoozeTimeRemaining}S)`
+                  : alertState === 'Drowsy'
                   ? 'ALARM ACTIVE'
                   : alertState === 'Warning'
                   ? 'WARNING'
@@ -114,6 +130,31 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
+            {/* Snooze button in Navbar if snoozed or if alert active */}
+            {isSnoozed ? (
+              <button
+                id="btn-nav-unsnooze"
+                type="button"
+                onClick={onCancelSnooze}
+                title="Resume alarm protection"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-950/40 border border-amber-500/60 text-amber-300 hover:bg-amber-950/60 text-[11px] uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                <Play className="h-3 w-3 fill-amber-400 text-amber-400" />
+                <span>Resume ({snoozeTimeRemaining}s)</span>
+              </button>
+            ) : alertState !== 'Normal' && onSnooze ? (
+              <button
+                id="btn-nav-snooze"
+                type="button"
+                onClick={onSnooze}
+                title="Snooze alerts for 30 seconds"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-zinc-900 border border-amber-500/50 hover:border-amber-400 text-amber-400 text-[11px] uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                <BellOff className="h-3.5 w-3.5" />
+                <span>Snooze (30s)</span>
+              </button>
+            ) : null}
+
             <button
               id="btn-test-sound"
               type="button"

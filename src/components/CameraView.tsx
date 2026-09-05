@@ -1,5 +1,5 @@
 import React from 'react';
-import { DetectionConfig, DetectionMetrics, AlertState } from '../types';
+import { DetectionConfig, DetectionMetrics, AlertState, CameraErrorInfo } from '../types';
 import {
   Camera,
   CameraOff,
@@ -7,6 +7,10 @@ import {
   RefreshCw,
   Eye,
   Crosshair,
+  BellOff,
+  AlertTriangle,
+  HelpCircle,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface CameraViewProps {
@@ -15,6 +19,7 @@ interface CameraViewProps {
   isCameraActive: boolean;
   isModelLoading: boolean;
   modelError: string | null;
+  cameraError: CameraErrorInfo | null;
   metrics: DetectionMetrics;
   alertState: AlertState;
   config: DetectionConfig;
@@ -22,12 +27,18 @@ interface CameraViewProps {
   selectedDeviceId: string;
   isCalibrating: boolean;
   calibrationProgress: number;
+  isSnoozed?: boolean;
+  snoozeTimeRemaining?: number;
+  isCheckingDevices?: boolean;
   onStartCamera: (deviceId?: string) => void;
   onStopCamera: () => void;
   onToggleMirror: () => void;
   onToggleMesh: () => void;
   onSelectDevice: (deviceId: string) => void;
   onStartCalibration: () => void;
+  onSnooze?: () => void;
+  onClearCameraError?: () => void;
+  onRefreshDevices?: () => Promise<MediaDeviceInfo[]>;
 }
 
 export const CameraView: React.FC<CameraViewProps> = ({
@@ -36,6 +47,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
   isCameraActive,
   isModelLoading,
   modelError,
+  cameraError,
   metrics,
   alertState,
   config,
@@ -43,12 +55,18 @@ export const CameraView: React.FC<CameraViewProps> = ({
   selectedDeviceId,
   isCalibrating,
   calibrationProgress,
+  isSnoozed = false,
+  snoozeTimeRemaining = 0,
+  isCheckingDevices = false,
   onStartCamera,
   onStopCamera,
   onToggleMirror,
   onToggleMesh,
   onSelectDevice,
   onStartCalibration,
+  onSnooze,
+  onClearCameraError,
+  onRefreshDevices,
 }) => {
   return (
     <div
@@ -71,6 +89,17 @@ export const CameraView: React.FC<CameraViewProps> = ({
 
         {/* Video Controls */}
         <div className="flex items-center gap-1.5">
+          {devices.length === 0 && !isCameraActive && (
+            <div
+              id="camera-hw-warning-badge"
+              className="flex items-center gap-1 px-2 py-0.5 border border-amber-800/80 bg-amber-950/40 text-amber-400 text-[9px] uppercase tracking-wider"
+              title="No video capture hardware detected"
+            >
+              <AlertTriangle className="h-3 w-3" />
+              <span>0 CAMERAS DETECTED</span>
+            </div>
+          )}
+
           {devices.length > 1 && (
             <select
               id="camera-device-select"
@@ -87,6 +116,20 @@ export const CameraView: React.FC<CameraViewProps> = ({
                 </option>
               ))}
             </select>
+          )}
+
+          {onRefreshDevices && (
+            <button
+              id="btn-scan-devices-top"
+              type="button"
+              onClick={() => onRefreshDevices()}
+              disabled={isCheckingDevices}
+              title="Rescan camera devices"
+              className="flex h-7 px-2 items-center gap-1 border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200 text-[10px] uppercase transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3 w-3 ${isCheckingDevices ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Scan</span>
+            </button>
           )}
 
           <button
@@ -175,10 +218,21 @@ export const CameraView: React.FC<CameraViewProps> = ({
         {alertState === 'Drowsy' && (
           <>
             <div className="absolute inset-0 border-2 border-red-600 pointer-events-none opacity-60 shadow-[inset_0_0_100px_rgba(220,38,38,0.25)] z-20 animate-pulse" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center z-30 pointer-events-none px-4">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center z-30 px-4">
               <div className="bg-red-600 text-white font-bold py-3 sm:py-4 px-6 sm:px-10 inline-block border-2 border-white shadow-2xl">
                 <p className="text-lg sm:text-2xl tracking-[0.2em] mb-1 uppercase">DROWSINESS DETECTED</p>
-                <p className="text-[10px] sm:text-xs opacity-90 uppercase tracking-wider">IMMEDIATE AUDIO ALERT ACTIVE</p>
+                <p className="text-[10px] sm:text-xs opacity-90 uppercase tracking-wider mb-3">IMMEDIATE AUDIO ALERT ACTIVE</p>
+                {onSnooze && (
+                  <button
+                    id="btn-camera-snooze"
+                    type="button"
+                    onClick={onSnooze}
+                    className="bg-black text-amber-300 hover:bg-zinc-900 border border-amber-400 px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer shadow-lg inline-flex items-center gap-1.5"
+                  >
+                    <BellOff className="h-3.5 w-3.5" />
+                    Snooze (30s)
+                  </button>
+                )}
               </div>
             </div>
           </>
@@ -210,44 +264,204 @@ export const CameraView: React.FC<CameraViewProps> = ({
           </div>
         )}
 
-        {/* Inactive or Loading Splash View */}
+        {/* Inactive, Loading, or Error Splash View */}
         {!isCameraActive && (
-          <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-sm">
-            <div className="flex h-12 w-12 items-center justify-center border border-zinc-800 bg-zinc-950 text-zinc-500">
-              {isModelLoading ? (
-                <RefreshCw className="h-6 w-6 animate-spin text-red-500" />
-              ) : (
-                <CameraOff className="h-6 w-6 text-zinc-600" />
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                {isModelLoading
-                  ? 'INITIALIZING NEURAL VISION'
-                  : modelError
-                  ? 'SENSOR / MODEL ERROR'
-                  : 'OPTICAL SENSOR OFFLINE'}
-              </h3>
-              <p className="text-xs text-zinc-500 leading-relaxed uppercase">
-                {isModelLoading
-                  ? 'Loading MediaPipe Face Mesh model assets...'
-                  : modelError
-                  ? modelError
-                  : 'Start optical sensor to enable facial landmark monitoring.'}
-              </p>
-            </div>
-
-            {!isModelLoading && (
-              <button
-                id="btn-start-camera-splash"
-                type="button"
-                onClick={() => onStartCamera(selectedDeviceId)}
-                className="flex items-center gap-2 bg-red-600 px-5 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-red-500 border border-red-400 transition-colors cursor-pointer"
+          <div className="relative z-10 flex flex-col items-center justify-center p-4 sm:p-6 text-center w-full max-w-lg">
+            {/* 1. Hardware or Permission Error State */}
+            {cameraError ? (
+              <div
+                id="camera-error-card"
+                role="alert"
+                className="w-full bg-zinc-950/95 border border-red-900/80 p-5 shadow-2xl space-y-4 text-left"
               >
-                <Camera className="h-3.5 w-3.5" />
-                Initialize Feed
-              </button>
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-red-800 bg-red-950/60 text-red-400">
+                    {cameraError.code === 'NOT_FOUND' ? (
+                      <CameraOff className="h-5 w-5" />
+                    ) : (
+                      <AlertTriangle className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-1.5 py-0.5 bg-red-950 border border-red-800 text-red-400 text-[9px] font-bold uppercase tracking-wider">
+                        {cameraError.code}
+                      </span>
+                      <h3 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
+                        {cameraError.title}
+                      </h3>
+                    </div>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      {cameraError.message}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Troubleshooting instructions */}
+                <div className="bg-zinc-900/80 border border-zinc-800 p-3 space-y-2">
+                  <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <HelpCircle className="h-3.5 w-3.5 shrink-0" />
+                    <span>Recommended Remedy:</span>
+                  </div>
+                  <p className="text-xs text-zinc-300 leading-relaxed">
+                    {cameraError.suggestion}
+                  </p>
+
+                  {cameraError.code === 'NOT_FOUND' && (
+                    <div className="pt-2 border-t border-zinc-800/80 text-[10px] text-zinc-400 space-y-1">
+                      <div className="text-zinc-500 uppercase font-semibold">Hardware checklist:</div>
+                      <div className="flex items-center gap-1.5 text-zinc-300">
+                        <span className="text-red-500">•</span> Connect an external USB webcam or check internal camera cables
+                      </div>
+                      <div className="flex items-center gap-1.5 text-zinc-300">
+                        <span className="text-red-500">•</span> Check for physical camera privacy switch or shutter on your laptop
+                      </div>
+                      <div className="flex items-center gap-1.5 text-zinc-300">
+                        <span className="text-red-500">•</span> Verify camera hardware is enabled in OS Device Manager / System Settings
+                      </div>
+                    </div>
+                  )}
+
+                  {cameraError.code === 'NOT_ALLOWED' && (
+                    <div className="pt-2 border-t border-zinc-800/80 text-[10px] text-zinc-400 space-y-1">
+                      <div className="text-zinc-500 uppercase font-semibold">Browser permission checklist:</div>
+                      <div className="flex items-center gap-1.5 text-zinc-300">
+                        <span className="text-red-500">•</span> Click the lock/site settings icon in the browser URL bar
+                      </div>
+                      <div className="flex items-center gap-1.5 text-zinc-300">
+                        <span className="text-red-500">•</span> Change Camera permission to "Allow"
+                      </div>
+                      <div className="flex items-center gap-1.5 text-zinc-300">
+                        <span className="text-red-500">•</span> Click "Retry Detection" below
+                      </div>
+                    </div>
+                  )}
+
+                  {cameraError.code === 'NOT_READABLE' && (
+                    <div className="pt-2 border-t border-zinc-800/80 text-[10px] text-zinc-400 space-y-1">
+                      <div className="text-zinc-500 uppercase font-semibold">Resource conflict checklist:</div>
+                      <div className="flex items-center gap-1.5 text-zinc-300">
+                        <span className="text-red-500">•</span> Close Zoom, Teams, Google Meet, Skype, or OBS
+                      </div>
+                      <div className="flex items-center gap-1.5 text-zinc-300">
+                        <span className="text-red-500">•</span> Ensure another browser tab is not holding the webcam feed
+                      </div>
+                    </div>
+                  )}
+
+                  {cameraError.code === 'DISCONNECTED' && (
+                    <div className="pt-2 border-t border-zinc-800/80 text-[10px] text-zinc-400 space-y-1">
+                      <div className="text-zinc-500 uppercase font-semibold">Reconnection checklist:</div>
+                      <div className="flex items-center gap-1.5 text-zinc-300">
+                        <span className="text-red-500">•</span> Re-seat the webcam USB plug into the port
+                      </div>
+                      <div className="flex items-center gap-1.5 text-zinc-300">
+                        <span className="text-red-500">•</span> Click "Retry Detection" to re-establish video capture
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-zinc-800">
+                  <div className="flex items-center gap-2">
+                    <button
+                      id="btn-retry-camera-error"
+                      type="button"
+                      onClick={() => onStartCamera(selectedDeviceId)}
+                      className="flex items-center gap-1.5 bg-red-600 hover:bg-red-500 text-white border border-red-400 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      Retry Detection
+                    </button>
+
+                    {onRefreshDevices && (
+                      <button
+                        id="btn-scan-devices-error"
+                        type="button"
+                        onClick={() => onRefreshDevices()}
+                        disabled={isCheckingDevices}
+                        className="flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 px-3 py-1.5 text-xs uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCw className={`h-3 w-3 ${isCheckingDevices ? 'animate-spin' : ''}`} />
+                        Scan Sensors
+                      </button>
+                    )}
+                  </div>
+
+                  {onClearCameraError && (
+                    <button
+                      id="btn-dismiss-camera-error"
+                      type="button"
+                      onClick={onClearCameraError}
+                      className="text-[11px] text-zinc-500 hover:text-zinc-300 uppercase underline cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* 2. Standard Offline or Model Loading Splash */
+              <div className="flex flex-col items-center justify-center space-y-4 max-w-sm">
+                <div className="flex h-12 w-12 items-center justify-center border border-zinc-800 bg-zinc-950 text-zinc-500">
+                  {isModelLoading ? (
+                    <RefreshCw className="h-6 w-6 animate-spin text-red-500" />
+                  ) : devices.length === 0 ? (
+                    <CameraOff className="h-6 w-6 text-amber-500" />
+                  ) : (
+                    <CameraOff className="h-6 w-6 text-zinc-600" />
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                    {isModelLoading
+                      ? 'INITIALIZING NEURAL VISION'
+                      : modelError
+                      ? 'MODEL LOADING FAILED'
+                      : devices.length === 0
+                      ? 'NO CAMERA DETECTED'
+                      : 'OPTICAL SENSOR OFFLINE'}
+                  </h3>
+                  <p className="text-xs text-zinc-500 leading-relaxed uppercase">
+                    {isModelLoading
+                      ? 'Loading MediaPipe Face Mesh model assets...'
+                      : modelError
+                      ? modelError
+                      : devices.length === 0
+                      ? 'No video capture hardware currently detected on your device. Connect a webcam or scan devices.'
+                      : 'Start optical sensor to enable facial landmark monitoring.'}
+                  </p>
+                </div>
+
+                {!isModelLoading && (
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      id="btn-start-camera-splash"
+                      type="button"
+                      onClick={() => onStartCamera(selectedDeviceId)}
+                      className="flex items-center gap-2 bg-red-600 px-5 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-red-500 border border-red-400 transition-colors cursor-pointer"
+                    >
+                      <Camera className="h-3.5 w-3.5" />
+                      Initialize Feed
+                    </button>
+
+                    {devices.length === 0 && onRefreshDevices && (
+                      <button
+                        id="btn-scan-camera-splash"
+                        type="button"
+                        onClick={() => onRefreshDevices()}
+                        disabled={isCheckingDevices}
+                        className="flex items-center gap-2 bg-zinc-900 px-4 py-2 text-xs font-bold uppercase tracking-widest text-zinc-300 hover:text-white border border-zinc-700 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 ${isCheckingDevices ? 'animate-spin' : ''}`} />
+                        Scan Sensors
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -255,7 +469,7 @@ export const CameraView: React.FC<CameraViewProps> = ({
         {/* Minimalist Top HUD Badges */}
         {isCameraActive && (
           <>
-            <div className="absolute top-3 left-3 z-10 flex gap-2">
+            <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-2">
               <div className="px-2 py-1 bg-zinc-900/90 text-[10px] border border-zinc-700 uppercase tracking-wider text-zinc-300">
                 720P {metrics.fps}FPS
               </div>
@@ -268,6 +482,12 @@ export const CameraView: React.FC<CameraViewProps> = ({
               >
                 {metrics.faceDetected ? 'DETECTION ON' : 'SEARCHING'}
               </div>
+              {isSnoozed && (
+                <div className="px-2 py-1 bg-amber-950/90 text-[10px] border border-amber-500 text-amber-300 font-bold uppercase tracking-wider animate-pulse flex items-center gap-1">
+                  <BellOff className="h-3 w-3" />
+                  SNOOZED ({snoozeTimeRemaining}S)
+                </div>
+              )}
             </div>
 
             {/* Bottom HUD: Live readings */}

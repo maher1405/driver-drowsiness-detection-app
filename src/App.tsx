@@ -23,19 +23,27 @@ export default function App() {
     isCameraActive,
     isModelLoading,
     modelError,
+    cameraError,
     devices,
+    isCheckingDevices,
     selectedDeviceId,
     setSelectedDeviceId,
     historyBuffer,
     isCalibrating,
     calibrationProgress,
+    isSnoozed,
+    snoozeTimeRemaining,
     videoRef,
     canvasRef,
     startCamera,
     stopCamera,
+    refreshDevices,
+    clearCameraError,
     startCalibration,
     clearAlertLogs,
     acknowledgeAlert,
+    snoozeAlert,
+    cancelSnooze,
   } = useDrowsinessDetector();
 
   const handleToggleSound = () => {
@@ -59,14 +67,22 @@ export default function App() {
         onToggleSound={handleToggleSound}
         onOpenSettings={() => setIsSettingsOpen(true)}
         drowsyEventCount={drowsyEventCount}
+        isSnoozed={isSnoozed}
+        snoozeTimeRemaining={snoozeTimeRemaining}
+        onSnooze={() => snoozeAlert(30)}
+        onCancelSnooze={cancelSnooze}
       />
 
-      {/* Critical Alert Banner (Triggers on Warning or Drowsy) */}
+      {/* Critical Alert Banner with 30s Snooze Action */}
       <AlertBanner
         alertState={alertState}
         reason={activeAlertReason}
         onAcknowledge={acknowledgeAlert}
         soundEnabled={config.soundEnabled}
+        isSnoozed={isSnoozed}
+        snoozeTimeRemaining={snoozeTimeRemaining}
+        onSnooze={() => snoozeAlert(30)}
+        onCancelSnooze={cancelSnooze}
       />
 
       {/* Main Content Area */}
@@ -90,6 +106,7 @@ export default function App() {
               isCameraActive={isCameraActive}
               isModelLoading={isModelLoading}
               modelError={modelError}
+              cameraError={cameraError}
               metrics={metrics}
               alertState={alertState}
               config={config}
@@ -97,12 +114,18 @@ export default function App() {
               selectedDeviceId={selectedDeviceId}
               isCalibrating={isCalibrating}
               calibrationProgress={calibrationProgress}
+              isSnoozed={isSnoozed}
+              snoozeTimeRemaining={snoozeTimeRemaining}
+              isCheckingDevices={isCheckingDevices}
               onStartCamera={startCamera}
               onStopCamera={stopCamera}
               onToggleMirror={handleToggleMirror}
               onToggleMesh={handleToggleMesh}
               onSelectDevice={setSelectedDeviceId}
               onStartCalibration={startCalibration}
+              onSnooze={() => snoozeAlert(30)}
+              onClearCameraError={clearCameraError}
+              onRefreshDevices={refreshDevices}
             />
 
             <MetricsGraph history={historyBuffer} config={config} />

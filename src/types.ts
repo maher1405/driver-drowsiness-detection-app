@@ -56,3 +56,20 @@ export interface NormalizedLandmark {
   y: number;
   z: number;
 }
+
+export type CameraErrorCode =
+  | 'NOT_FOUND'         // No camera detected / plugged in
+  | 'NOT_ALLOWED'       // Permission denied by user or system
+  | 'NOT_READABLE'      // In use by another app or hardware failure
+  | 'OVERCONSTRAINED'   // Requested constraints cannot be met
+  | 'UNSUPPORTED'       // MediaDevices / WebRTC not supported in browser
+  | 'DISCONNECTED'      // Stream ended unexpectedly / unplugged
+  | 'GENERIC';          // Unknown failure
+
+export interface CameraErrorInfo {
+  code: CameraErrorCode;
+  title: string;
+  message: string;
+  suggestion: string;
+  rawError?: string;
+}

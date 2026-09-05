@@ -5,11 +5,99 @@ import {
   DetectionConfig,
   DetectionMetrics,
   NormalizedLandmark,
+  CameraErrorInfo,
 } from '../types';
 import { getFaceLandmarker, detectFace } from '../services/faceLandmarkerService';
 import { computeAverageEAR, computeMAR, estimateHeadPose } from '../utils/math';
 import { drawFaceLandmarks } from '../utils/canvasDrawing';
 import { alarmAudio } from '../utils/audio';
+
+export function parseCameraError(err: unknown): CameraErrorInfo {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return {
+      code: 'UNSUPPORTED',
+      title: 'CAMERA API NOT SUPPORTED',
+      message: 'Your browser environment or current security context does not support video streaming.',
+      suggestion: 'Ensure you are running the application over HTTPS or localhost on a supported modern browser.',
+      rawError: String(err),
+    };
+  }
+
+  if (err instanceof DOMException || (err && typeof err === 'object' && 'name' in err)) {
+    const domErr = err as DOMException;
+    switch (domErr.name) {
+      case 'NotFoundError':
+      case 'DevicesNotFoundError':
+        return {
+          code: 'NOT_FOUND',
+          title: 'NO CAMERA DETECTED',
+          message: 'No video capture hardware or optical sensor was found on your system.',
+          suggestion: 'Ensure your webcam is plugged into a USB port, turned on, and not disabled in system settings.',
+          rawError: domErr.message || domErr.name,
+        };
+      case 'NotAllowedError':
+      case 'PermissionDeniedError':
+      case 'SecurityError':
+        return {
+          code: 'NOT_ALLOWED',
+          title: 'CAMERA PERMISSION DENIED',
+          message: 'Camera access permission was denied by your browser or operating system.',
+          suggestion: 'Click the camera or lock icon in your browser address bar to allow camera access, then retry.',
+          rawError: domErr.message || domErr.name,
+        };
+      case 'NotReadableError':
+      case 'TrackStartError':
+        return {
+          code: 'NOT_READABLE',
+          title: 'CAMERA BUSY / HARDWARE IN USE',
+          message: 'The optical sensor could not be started because another application is locking it.',
+          suggestion: 'Close video conferencing apps (Zoom, Teams, Google Meet, Skype, OBS) and retry.',
+          rawError: domErr.message || domErr.name,
+        };
+      case 'OverconstrainedError':
+      case 'ConstraintNotSatisfiedError':
+        return {
+          code: 'OVERCONSTRAINED',
+          title: 'CAMERA CONSTRAINTS UNSUPPORTED',
+          message: 'The requested video format or resolution constraints cannot be delivered by this camera.',
+          suggestion: 'Select a different connected camera or restart feed with standard resolution settings.',
+          rawError: domErr.message || domErr.name,
+        };
+      case 'AbortError':
+        return {
+          code: 'GENERIC',
+          title: 'CAMERA INITIALIZATION ABORTED',
+          message: 'Camera activation was interrupted or timed out.',
+          suggestion: 'Click Initialize Feed to try starting the webcam again.',
+          rawError: domErr.message || domErr.name,
+        };
+    }
+  }
+
+  const errStr = String(err || '').toLowerCase();
+  if (
+    errStr.includes('not found') ||
+    errStr.includes('no device') ||
+    errStr.includes('device not found') ||
+    errStr.includes('camera not detected')
+  ) {
+    return {
+      code: 'NOT_FOUND',
+      title: 'NO CAMERA DETECTED',
+      message: 'No video capture hardware or optical sensor was found on your system.',
+      suggestion: 'Connect an external USB webcam or ensure your device\'s built-in camera is enabled.',
+      rawError: String(err),
+    };
+  }
+
+  return {
+    code: 'GENERIC',
+    title: 'OPTICAL SENSOR ERROR',
+    message: err instanceof Error ? err.message : 'An error occurred while starting the camera.',
+    suggestion: 'Verify hardware connections and permissions, then click Retry.',
+    rawError: String(err),
+  };
+}
 
 const DEFAULT_CONFIG: DetectionConfig = {
   earThreshold: 0.25,
@@ -60,6 +148,8 @@ export function useDrowsinessDetector() {
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
   const [isModelLoading, setIsModelLoading] = useState<boolean>(true);
   const [modelError, setModelError] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<CameraErrorInfo | null>(null);
+  const [isCheckingDevices, setIsCheckingDevices] = useState<boolean>(false);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
 
@@ -69,6 +159,11 @@ export function useDrowsinessDetector() {
   // Calibration state
   const [isCalibrating, setIsCalibrating] = useState<boolean>(false);
   const [calibrationProgress, setCalibrationProgress] = useState<number>(0);
+
+  // Snooze state (pauses alerts for 30s)
+  const [isSnoozed, setIsSnoozed] = useState<boolean>(false);
+  const [snoozeTimeRemaining, setSnoozeTimeRemaining] = useState<number>(0);
+  const snoozeUntilRef = useRef<number | null>(null);
 
   // Refs for requestAnimationFrame loop
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -96,24 +191,72 @@ export function useDrowsinessDetector() {
   // Calibration samples
   const calibrationSamplesRef = useRef<{ ear: number; mar: number; pitch: number }[]>([]);
 
+  // Snooze countdown timer
+  useEffect(() => {
+    if (!isSnoozed) return;
+    const interval = setInterval(() => {
+      if (snoozeUntilRef.current) {
+        const remaining = Math.max(0, Math.ceil((snoozeUntilRef.current - Date.now()) / 1000));
+        setSnoozeTimeRemaining(remaining);
+        if (remaining <= 0) {
+          snoozeUntilRef.current = null;
+          setIsSnoozed(false);
+          setSnoozeTimeRemaining(0);
+        }
+      } else {
+        setIsSnoozed(false);
+        setSnoozeTimeRemaining(0);
+      }
+    }, 250);
+    return () => clearInterval(interval);
+  }, [isSnoozed]);
+
   // Update volume on audio controller
   useEffect(() => {
     alarmAudio.setVolume(config.soundVolume);
   }, [config.soundVolume]);
 
   // Load available camera devices
-  const refreshDevices = useCallback(async () => {
+  const refreshDevices = useCallback(async (): Promise<MediaDeviceInfo[]> => {
+    setIsCheckingDevices(true);
     try {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        setDevices([]);
+        return [];
+      }
       const allDevices = await navigator.mediaDevices.enumerateDevices();
       const videoInputs = allDevices.filter((d) => d.kind === 'videoinput');
       setDevices(videoInputs);
-      if (videoInputs.length > 0 && !selectedDeviceId) {
-        setSelectedDeviceId(videoInputs[0].deviceId);
+      if (videoInputs.length > 0) {
+        // If we previously had a NOT_FOUND error and now devices exist, clear it
+        setCameraError((prev) => (prev?.code === 'NOT_FOUND' ? null : prev));
+        if (!selectedDeviceId || !videoInputs.some((d) => d.deviceId === selectedDeviceId)) {
+          setSelectedDeviceId(videoInputs[0].deviceId);
+        }
+      } else if (allDevices.length > 0) {
+        // Devices enumerated, but 0 video cameras
+        setSelectedDeviceId('');
       }
+      return videoInputs;
     } catch (e) {
       console.warn('Could not enumerate devices:', e);
+      return [];
+    } finally {
+      setIsCheckingDevices(false);
     }
   }, [selectedDeviceId]);
+
+  // Listen for hardware plug/unplug events
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.addEventListener) return;
+    const handleDeviceChange = () => {
+      refreshDevices();
+    };
+    navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+    };
+  }, [refreshDevices]);
 
   // Pre-load MediaPipe Model
   useEffect(() => {
@@ -145,20 +288,91 @@ export function useDrowsinessDetector() {
 
   // Start Webcam
   const startCamera = useCallback(async (deviceIdToUse?: string) => {
+    setCameraError(null);
+    setModelError(null);
+
+    // 1. Verify Browser API support
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const errInfo: CameraErrorInfo = {
+        code: 'UNSUPPORTED',
+        title: 'CAMERA API NOT SUPPORTED',
+        message: 'Your browser environment or current window context does not support webcam capture.',
+        suggestion: 'Ensure you are running the application over HTTPS or localhost on a modern browser (Chrome, Edge, Safari, Firefox).',
+      };
+      setCameraError(errInfo);
+      setIsCameraActive(false);
+      return;
+    }
+
+    // 2. Pre-check device enumeration if available
+    try {
+      if (navigator.mediaDevices.enumerateDevices) {
+        const availableDevices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = availableDevices.filter((d) => d.kind === 'videoinput');
+        setDevices(videoDevices);
+        // If devices exist but strictly 0 video capture inputs:
+        if (availableDevices.length > 0 && videoDevices.length === 0) {
+          const notFoundError: CameraErrorInfo = {
+            code: 'NOT_FOUND',
+            title: 'NO CAMERA DETECTED',
+            message: 'No video capture hardware or optical sensor was found on your system.',
+            suggestion: 'Connect an external USB webcam or verify your integrated camera is enabled in device settings.',
+          };
+          setCameraError(notFoundError);
+          setIsCameraActive(false);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Pre-check device enumeration notice:', e);
+    }
+
     try {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
       }
 
+      const targetDeviceId = deviceIdToUse || selectedDeviceId;
       const constraints: MediaStreamConstraints = {
-        video: deviceIdToUse
-          ? { deviceId: { exact: deviceIdToUse }, width: { ideal: 640 }, height: { ideal: 480 } }
+        video: targetDeviceId
+          ? { deviceId: { exact: targetDeviceId }, width: { ideal: 640 }, height: { ideal: 480 } }
           : { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
         audio: false,
       };
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (firstErr) {
+        // If exact device constraint failed (e.g. OverconstrainedError or device disconnected), attempt generic fallback
+        if (targetDeviceId && firstErr instanceof DOMException && (firstErr.name === 'OverconstrainedError' || firstErr.name === 'NotFoundError')) {
+          console.warn('Specified deviceId failed, attempting fallback to default camera...');
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+            audio: false,
+          });
+        } else {
+          throw firstErr;
+        }
+      }
+
       streamRef.current = stream;
+
+      // Monitor hardware disconnection during active stream
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.onended = () => {
+          console.warn('Camera video track terminated unexpectedly (camera disconnected)');
+          setCameraError({
+            code: 'DISCONNECTED',
+            title: 'CAMERA DISCONNECTED',
+            message: 'The optical sensor video stream was terminated or the camera was unplugged.',
+            suggestion: 'Reconnect your camera, ensure cables are secure, and click Reconnect Feed.',
+          });
+          setIsCameraActive(false);
+          alarmAudio.stopAlarm();
+        };
+      }
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -166,13 +380,15 @@ export function useDrowsinessDetector() {
       }
 
       setIsCameraActive(true);
+      setCameraError(null);
       await refreshDevices();
     } catch (err) {
       console.error('Error starting camera:', err);
-      setModelError('Could not access webcam. Please verify camera permissions.');
+      const parsed = parseCameraError(err);
+      setCameraError(parsed);
       setIsCameraActive(false);
     }
-  }, [refreshDevices]);
+  }, [refreshDevices, selectedDeviceId]);
 
   // Stop Webcam
   const stopCamera = useCallback(() => {
@@ -286,32 +502,51 @@ export function useDrowsinessDetector() {
               calibrationSamplesRef.current.push({ ear, mar, pitch });
             }
 
+            // Check if snooze mode is active
+            const isCurrentlySnoozed =
+              snoozeUntilRef.current !== null && Date.now() < snoozeUntilRef.current;
+
+            if (isCurrentlySnoozed) {
+              eyesClosedCounterRef.current = 0;
+              yawningCounterRef.current = 0;
+              headNodCounterRef.current = 0;
+              if (isDrowsyActiveRef.current) {
+                isDrowsyActiveRef.current = false;
+                alarmAudio.stopAlarm();
+              }
+            } else if (snoozeUntilRef.current !== null) {
+              // Snooze just expired
+              snoozeUntilRef.current = null;
+              setIsSnoozed(false);
+              setSnoozeTimeRemaining(0);
+            }
+
             // Signal 1: Eyes Closed
-            if (ear < cfg.earThreshold) {
+            if (!isCurrentlySnoozed && ear < cfg.earThreshold) {
               eyesClosedCounterRef.current += 1;
             } else {
               eyesClosedCounterRef.current = Math.max(0, eyesClosedCounterRef.current - 1);
             }
-            const isEyesClosed = eyesClosedCounterRef.current >= cfg.earConsecutiveFrames;
-            const isPersistentEyesClosed = eyesClosedCounterRef.current >= cfg.earPersistentFrames;
+            const isEyesClosed = !isCurrentlySnoozed && eyesClosedCounterRef.current >= cfg.earConsecutiveFrames;
+            const isPersistentEyesClosed = !isCurrentlySnoozed && eyesClosedCounterRef.current >= cfg.earPersistentFrames;
 
             // Signal 2: Yawning
-            if (mar > cfg.marThreshold) {
+            if (!isCurrentlySnoozed && mar > cfg.marThreshold) {
               yawningCounterRef.current += 1;
             } else {
               yawningCounterRef.current = Math.max(0, yawningCounterRef.current - 1);
             }
-            const isYawning = yawningCounterRef.current >= cfg.marConsecutiveFrames;
-            const isPersistentYawning = yawningCounterRef.current >= cfg.marPersistentFrames;
+            const isYawning = !isCurrentlySnoozed && yawningCounterRef.current >= cfg.marConsecutiveFrames;
+            const isPersistentYawning = !isCurrentlySnoozed && yawningCounterRef.current >= cfg.marPersistentFrames;
 
             // Signal 3: Head Nodding
-            if (pitch <= cfg.headPitchThreshold) {
+            if (!isCurrentlySnoozed && pitch <= cfg.headPitchThreshold) {
               headNodCounterRef.current += 1;
             } else {
               headNodCounterRef.current = Math.max(0, headNodCounterRef.current - 1);
             }
-            const isHeadNodding = headNodCounterRef.current >= cfg.headNodConsecutiveFrames;
-            const isPersistentHeadNodding = headNodCounterRef.current >= cfg.headNodPersistentFrames;
+            const isHeadNodding = !isCurrentlySnoozed && headNodCounterRef.current >= cfg.headNodConsecutiveFrames;
+            const isPersistentHeadNodding = !isCurrentlySnoozed && headNodCounterRef.current >= cfg.headNodPersistentFrames;
 
             // Count active primary signals
             const activeSignalsList: string[] = [];
@@ -333,10 +568,10 @@ export function useDrowsinessDetector() {
 
             // CRITICAL RULE:
             // "When any two of these three signals are active at once, or one signal persists long enough, trigger a clear on-screen red alert banner and play a loud beep/alarm sound."
-            const isCriticalDrowsy = activeSignalCount >= 2 || persistentReason.length > 0;
+            const isCriticalDrowsy = !isCurrentlySnoozed && (activeSignalCount >= 2 || persistentReason.length > 0);
 
             // WARNING STATE: 1 active signal or borderline
-            const isWarning = !isCriticalDrowsy && (
+            const isWarning = !isCurrentlySnoozed && !isCriticalDrowsy && (
               activeSignalCount === 1 ||
               eyesClosedCounterRef.current >= Math.floor(cfg.earConsecutiveFrames * 0.6) ||
               yawningCounterRef.current >= Math.floor(cfg.marConsecutiveFrames * 0.6) ||
@@ -406,7 +641,10 @@ export function useDrowsinessDetector() {
                 }
               }
 
-              if (!isDrowsyActiveRef.current) {
+              if (isCurrentlySnoozed) {
+                setAlertState('Normal');
+                setActiveAlertReason('');
+              } else if (!isDrowsyActiveRef.current) {
                 if (isWarning) {
                   setAlertState('Warning');
                   const warnMsg = activeSignalsList.length > 0
@@ -506,6 +744,30 @@ export function useDrowsinessDetector() {
     setActiveAlertReason('');
   }, []);
 
+  const snoozeAlert = useCallback((durationSeconds: number = 30) => {
+    alarmAudio.stopAlarm();
+    isDrowsyActiveRef.current = false;
+    eyesClosedCounterRef.current = 0;
+    yawningCounterRef.current = 0;
+    headNodCounterRef.current = 0;
+    safeRecoveryCounterRef.current = 0;
+    snoozeUntilRef.current = Date.now() + durationSeconds * 1000;
+    setIsSnoozed(true);
+    setSnoozeTimeRemaining(durationSeconds);
+    setAlertState('Normal');
+    setActiveAlertReason('');
+  }, []);
+
+  const cancelSnooze = useCallback(() => {
+    snoozeUntilRef.current = null;
+    setIsSnoozed(false);
+    setSnoozeTimeRemaining(0);
+  }, []);
+
+  const clearCameraError = useCallback(() => {
+    setCameraError(null);
+  }, []);
+
   return {
     config,
     setConfig,
@@ -518,18 +780,26 @@ export function useDrowsinessDetector() {
     isCameraActive,
     isModelLoading,
     modelError,
+    cameraError,
     devices,
+    isCheckingDevices,
     selectedDeviceId,
     setSelectedDeviceId,
     historyBuffer,
     isCalibrating,
     calibrationProgress,
+    isSnoozed,
+    snoozeTimeRemaining,
     videoRef,
     canvasRef,
     startCamera,
     stopCamera,
+    refreshDevices,
+    clearCameraError,
     startCalibration,
     clearAlertLogs,
     acknowledgeAlert,
+    snoozeAlert,
+    cancelSnooze,
   };
 }
