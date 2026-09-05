@@ -1,0 +1,6 @@
+{
+  "name": "Driver Drowsiness Detection System",
+  "description": "Real-time webcam driver drowsiness and fatigue detection system using facial landmark analysis, EAR, MAR, and head tilt pose tracking.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
